@@ -7,7 +7,7 @@ import os
 # Load config from environment variables
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SECRET_TOKEN = os.environ.get("SECRET_TOKEN", "")
-PORT = 8000
+PORT = int(os.environ.get("PORT", 8000))
 STATIC_DIR = os.path.dirname(os.path.abspath(__file__))
 
 if not API_KEY:
