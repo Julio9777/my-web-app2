@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Julien's AI Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0e0e10; --bg2: #16161a; --bg3: #1e1e24;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+    --text: #e8e6e0; --muted: #888580;
+    --accent: #5dc9a0; --accent2: #a78bfa;
+    --danger: #f87171;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 14px; min-height: 100vh; display: flex; flex-direction: column; }
+
+  #header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; }
+  #logo { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; color: #0e0e10; font-size: 16px; flex-shrink: 0; }
+  #header-title { font-family: var(--font-display); font-weight: 700; font-size: 17px; }
+  #header-sub { font-size: 11px; color: var(--muted); margin-left: auto; }
+  #status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; flex-shrink: 0; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  #main { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 61px); }
+
+  #sidebar { width: 260px; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
+  .panel { padding: 16px; border-bottom: 1px solid var(--border); }
+  .panel-label { font-size: 10px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+
+  #system-input { width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius); padding: 8px 10px; color: var(--text); font-family: var(--font-mono); font-size: 12px; outline: none; resize: vertical; min-height: 80px; line-height: 1.5; }
+  #system-input:focus { border-color: var(--accent2); }
+
+  #memory-list { display: flex; flex-direction: column; gap: 5px; }
+  .mem-tag { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 5px 9px; font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+  .mem-del { cursor: pointer; color: var(--danger); font-size: 13px; background: none; border: none; padding: 0 0 0 8px; }
+  #clear-mem { margin-top: 8px; font-size: 11px; color: var(--danger); cursor: pointer; background: none; border: none; padding: 0; font-family: var(--font-mono); }
+
+  #stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-box { background: var(--bg3); border-radius: 8px; padding: 8px 10px; }
+  .stat-val { font-size: 20px; font-weight: 500; font-family: var(--font-display); color: var(--accent); }
+  .stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  #chat-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #messages { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+  #messages::-webkit-scrollbar { width: 4px; }
+  #messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .msg { max-width: 75%; padding: 12px 16px; border-radius: var(--radius); line-height: 1.65; font-size: 13.5px; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .msg.user { align-self: flex-end; background: var(--bg3); border: 1px solid var(--border2); border-bottom-right-radius: 3px; }
+  .msg.ai { align-self: flex-start; background: rgba(93,201,160,0.08); border: 1px solid rgba(93,201,160,0.2); border-bottom-left-radius: 3px; }
+  .msg.ai.thinking { color: var(--muted); font-style: italic; }
+  .msg.system-msg { align-self: center; background: none; border: 1px dashed var(--border2); color: var(--muted); font-size: 11px; padding: 6px 12px; max-width: 90%; }
+
+  #input-bar { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-end; }
+  #chat-input { flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius); padding: 10px 14px; color: var(--text); font-family: var(--font-mono); font-size: 13px; outline: none; resize: none; min-height: 42px; max-height: 120px; line-height: 1.5; }
+  #chat-input:focus { border-color: var(--accent); }
+  #send-btn { background: var(--accent); color: #0e0e10; border: none; border-radius: var(--radius); padding: 10px 18px; font-family: var(--font-display); font-weight: 600; font-size: 13px; cursor: pointer; height: 42px; transition: opacity 0.15s; }
+  #send-btn:hover { opacity: 0.85; }
+  #send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  #quick-actions { padding: 10px 24px; border-top: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; }
+  .qa-btn { font-size: 11px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border2); color: var(--muted); cursor: pointer; background: var(--bg2); font-family: var(--font-mono); transition: border-color 0.15s, color 0.15s; }
+  .qa-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  #welcome { align-self: center; text-align: center; padding: 40px 20px; max-width: 380px; }
+  #welcome h2 { font-family: var(--font-display); font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+  #welcome p { color: var(--muted); line-height: 1.7; font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="header">
+  <div id="logo">J</div>
+  <span id="header-title">Julien's AI Dashboard</span>
+  <span id="header-sub">Powered by Claude</span>
+  <div id="status-dot"></div>
+</div>
+
+<div id="main">
+  <div id="sidebar">
+    <div class="panel">
+      <div class="panel-label">System prompt</div>
+      <textarea id="system-input">You are a direct, knowledgeable AI assistant helping Julien, a beginner exploring SAP BTP. Be concise, honest, and skip motivational filler. When relevant, connect answers to BTP concepts.</textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Memory</div>
+      <div id="memory-list"></div>
+      <button id="clear-mem" onclick="clearMemory()">Clear all memory</button>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Session stats</div>
+      <div id="stats-grid">
+        <div class="stat-box"><div class="stat-val" id="stat-msgs">0</div><div class="stat-lbl">messages</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-mem">0</div><div class="stat-lbl">memories</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="chat-area">
+    <div id="messages">
+      <div id="welcome">
+        <h2>Hello, Julien 👋</h2>
+        <p>Your personal AI dashboard is ready. Type a message below to start chatting.</p>
+      </div>
+    </div>
+    <div id="quick-actions">
+      <button class="qa-btn" onclick="quickAsk('What is SAP BTP and where should I start?')">What is BTP?</button>
+      <button class="qa-btn" onclick="quickAsk('What are the most important BTP services for a beginner?')">Key services</button>
+      <button class="qa-btn" onclick="quickAsk('Give me a practical BTP learning roadmap')">My roadmap</button>
+      <button class="qa-btn" onclick="quickAsk('What did you learn about me so far?')">What do you know about me?</button>
+    </div>
+    <div id="input-bar">
+      <textarea id="chat-input" placeholder="Ask anything..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const MEMORY_KEY = 'julien_dashboard_memory';
+  let history = [];
+  let msgCount = 0;
+
+  window.onload = () => { renderMemory(); };
+
+  function loadMemory() { try { return JSON.parse(localStorage.getItem(MEMORY_KEY) || '[]'); } catch(e) { return []; } }
+  function saveMemory(m) { localStorage.setItem(MEMORY_KEY, JSON.stringify(m)); }
+
+  function extractMemory(text) {
+    const mem = loadMemory();
+    let item = null;
+    const nameMatch = text.match(/my name is ([A-Za-zÀ-ÿ]+)/i);
+    if (nameMatch) item = 'Name: ' + nameMatch[1];
+    const loveMatch = text.match(/i (love|like|enjoy|hate|dislike) ([a-zA-ZÀ-ÿ ]+)/i);
+    if (loveMatch) item = loveMatch[1].charAt(0).toUpperCase()+loveMatch[1].slice(1)+': '+loveMatch[2].trim();
+    const fromMatch = text.match(/i(?:'m| am) from ([a-zA-ZÀ-ÿ ]+)/i);
+    if (fromMatch) item = 'From: ' + fromMatch[2].trim();
+    const workMatch = text.match(/i (?:work as|am a|am an) ([a-zA-ZÀ-ÿ ]+)/i);
+    if (workMatch) item = 'Job: ' + workMatch[2].trim();
+    if (item && !mem.includes(item)) { mem.push(item); saveMemory(mem); renderMemory(); }
+  }
+
+  function renderMemory() {
+    const mem = loadMemory();
+    const list = document.getElementById('memory-list');
+    list.innerHTML = '';
+    document.getElementById('stat-mem').textContent = mem.length;
+    if (mem.length === 0) {
+      list.innerHTML = '<span style="font-size:12px;color:var(--muted);font-style:italic;">Nothing stored yet.</span>';
+      return;
+    }
+    mem.forEach((item, i) => {
+      const div = document.createElement('div');
+      div.className = 'mem-tag';
+      div.innerHTML = `<span>${item}</span><button class="mem-del" onclick="deleteMem(${i})">✕</button>`;
+      list.appendChild(div);
+    });
+  }
+
+  function deleteMem(i) { const m = loadMemory(); m.splice(i,1); saveMemory(m); renderMemory(); }
+  function clearMemory() { saveMemory([]); renderMemory(); }
+
+  function addMsg(text, role) {
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.remove();
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    div.textContent = text;
+    document.getElementById('messages').appendChild(div);
+    document.getElementById('messages').scrollTop = 99999;
+    return div;
+  }
+
+  function addSystemMsg(text) {
+    const div = document.createElement('div');
+    div.className = 'msg system-msg';
+    div.textContent = text;
+    document.getElementById('messages').appendChild(div);
+    document.getElementById('messages').scrollTop = 99999;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    autoResize(input);
+    document.getElementById('send-btn').disabled = true;
+
+    extractMemory(text);
+    addMsg(text, 'user');
+    history.push({ role: 'user', content: text });
+    msgCount++;
+    document.getElementById('stat-msgs').textContent = msgCount;
+
+    const thinking = addMsg('Thinking...', 'ai thinking');
+
+    const mem = loadMemory();
+    const memStr = mem.length > 0 ? '\n\nFacts about the user: ' + mem.join(', ') + '.' : '';
+    const systemPrompt = document.getElementById('system-input').value + memStr;
+
+    try {
+      const res = await fetch('http://localhost:8000/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Secret-Token': 'LaSeineEst75!' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: systemPrompt,
+          messages: history
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        thinking.textContent = '⚠ Error: ' + data.error.message;
+        thinking.classList.remove('thinking');
+        history.pop();
+      } else {
+        const reply = data.content[0].text;
+        thinking.textContent = reply;
+        thinking.classList.remove('thinking');
+        history.push({ role: 'assistant', content: reply });
+        msgCount++;
+        document.getElementById('stat-msgs').textContent = msgCount;
+      }
+    } catch(e) {
+      thinking.textContent = '⚠ Could not reach the server. Is server.py running?';
+      thinking.classList.remove('thinking');
+      history.pop();
+    }
+
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('chat-input').focus();
+  }
+
+  function quickAsk(text) {
+    document.getElementById('chat-input').value = text;
+    sendMessage();
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+</script>
+</body>
+</html>
