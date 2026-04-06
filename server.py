@@ -25,7 +25,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split('?')[0]
         if path == '/' or path == '':
-            path = '/my-web-app.html'
+            path = '/my-web-app2.html'
         filepath = os.path.join(STATIC_DIR, path.lstrip('/'))
         if os.path.exists(filepath):
             self.send_response(200)
