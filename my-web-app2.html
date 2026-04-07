@@ -113,6 +113,18 @@
       <button class="qa-btn" onclick="quickAsk('What are the most important BTP services for a beginner?')">Key services</button>
       <button class="qa-btn" onclick="quickAsk('Give me a practical BTP learning roadmap')">My roadmap</button>
       <button class="qa-btn" onclick="quickAsk('What did you learn about me so far?')">What do you know about me?</button>
+      <button class="qa-btn" onclick="showCallPanel()" style="border-color: #5dc9a0; color: #5dc9a0;">📞 Make AI call</button>
+    </div>
+
+    <!-- Call panel -->
+    <div id="call-panel" style="display:none; padding: 12px 24px; border-top: 1px solid var(--border); background: var(--bg2);">
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <input id="call-number" type="tel" placeholder="+33612345678" style="padding:8px 12px; background:var(--bg3); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font-mono); font-size:13px; width:160px;"/>
+        <input id="call-question" type="text" placeholder="What to ask..." style="padding:8px 12px; background:var(--bg3); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font-mono); font-size:13px; flex:1;"/>
+        <button onclick="makeCall()" style="padding:8px 16px; background:var(--accent); color:#0e0e10; border:none; border-radius:8px; font-family:var(--font-display); font-weight:600; font-size:13px; cursor:pointer;">Call</button>
+        <button onclick="document.getElementById('call-panel').style.display='none'" style="padding:8px 12px; background:none; border:1px solid var(--border2); border-radius:8px; color:var(--muted); font-family:var(--font-mono); font-size:12px; cursor:pointer;">Cancel</button>
+      </div>
+      <div id="call-status" style="margin-top:8px; font-size:12px; color:var(--muted);"></div>
     </div>
     <div id="input-bar">
       <textarea id="chat-input" placeholder="Ask anything..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
@@ -206,9 +218,9 @@
     const systemPrompt = document.getElementById('system-input').value + memStr;
 
     try {
-const res = await fetch('https://my-web-app2-production.up.railway.app/chat', {
+      const res = await fetch('http://localhost:8000/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Secret-Token': 'LaSeFEZRGRG343' },
+        headers: { 'Content-Type': 'application/json', 'X-Secret-Token': 'REPLACE_WITH_YOUR_SECRET_TOKEN' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1000,
@@ -246,6 +258,38 @@ const res = await fetch('https://my-web-app2-production.up.railway.app/chat', {
 
   function handleKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function showCallPanel() {
+    document.getElementById('call-panel').style.display = 'block';
+  }
+
+  async function makeCall() {
+    const number = document.getElementById('call-number').value.trim();
+    const question = document.getElementById('call-question').value.trim();
+    const status = document.getElementById('call-status');
+
+    if (!number) { status.textContent = 'Please enter a phone number.'; return; }
+    if (!question) { status.textContent = 'Please enter a question to ask.'; return; }
+
+    status.textContent = 'Initiating call...';
+
+    try {
+      const res = await fetch('https://my-web-app2-production.up.railway.app/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Secret-Token': 'REPLACE_WITH_YOUR_SECRET_TOKEN' },
+        body: JSON.stringify({ to_number: number, question: question })
+      });
+      const data = await res.json();
+      if (data.error) {
+        status.textContent = 'Error: ' + data.error;
+      } else {
+        status.textContent = 'Call initiated! Status: ' + data.status + '. The AI will call the number now.';
+        addSystemMsg('📞 AI call initiated to ' + number + ' — asking: "' + question + '"');
+      }
+    } catch(e) {
+      status.textContent = 'Could not reach the server.';
+    }
   }
 
   function autoResize(el) {
