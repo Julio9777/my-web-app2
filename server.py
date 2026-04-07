@@ -95,5 +95,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
         print(f"[server] {args[0]} {args[1]}")
 
 print(f"Server running at http://localhost:{PORT}")
+print(f"Serving files from: {STATIC_DIR}")
 print("Press Ctrl+C to stop")
 http.server.HTTPServer(('', PORT), Handler).serve_forever()
