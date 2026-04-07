@@ -219,7 +219,7 @@
     const systemPrompt = document.getElementById('system-input').value + memStr;
 
     try {
-      const res = await fetch('http://localhost:8000/chat', {
+      const res = await fetch(SERVER + '/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Secret-Token': SECRET },
         body: JSON.stringify({
