@@ -24,6 +24,26 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split('?')[0]
+
+        if path == '/transcription/latest':
+            token = self.headers.get('X-Secret-Token', '')
+            if token != SECRET_TOKEN:
+                self.send_response(401)
+                self.end_headers()
+                return
+            filepath = os.path.join(STATIC_DIR, 'latest_transcription.txt')
+            if os.path.exists(filepath):
+                with open(filepath, 'r') as f:
+                    transcript = f.read()
+            else:
+                transcript = None
+            self.send_response(200)
+            self._cors()
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(__import__('json').dumps({'transcript': transcript}).encode())
+            return
+
         if path == '/' or path == '':
             path = '/my-web-app2.html'
         filepath = os.path.join(STATIC_DIR, path.lstrip('/'))

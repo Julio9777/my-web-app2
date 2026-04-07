@@ -125,6 +125,7 @@
         <button onclick="document.getElementById('call-panel').style.display='none'" style="padding:8px 12px; background:none; border:1px solid var(--border2); border-radius:8px; color:var(--muted); font-family:var(--font-mono); font-size:12px; cursor:pointer;">Cancel</button>
       </div>
       <div id="call-status" style="margin-top:8px; font-size:12px; color:var(--muted);"></div>
+      <button id="check-btn" onclick="checkTranscription()" style="display:none; margin-top:8px; padding:6px 12px; background:none; border:1px solid var(--border2); border-radius:8px; color:var(--accent); font-family:var(--font-mono); font-size:12px; cursor:pointer;">Check transcription result</button>
     </div>
     <div id="input-bar">
       <textarea id="chat-input" placeholder="Ask anything..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
@@ -220,7 +221,7 @@
     try {
       const res = await fetch('http://localhost:8000/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Secret-Token': 'LaSeFEZRGRG343' },
+        headers: { 'Content-Type': 'application/json', 'X-Secret-Token': SECRET },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1000,
@@ -260,6 +261,28 @@
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }
 
+  async function checkTranscription() {
+    const status = document.getElementById('call-status');
+    status.textContent = 'Fetching transcription...';
+    try {
+      const res = await fetch(SERVER + '/transcription/latest', {
+        headers: { 'X-Secret-Token': SECRET }
+      });
+      const data = await res.json();
+      if (data.transcript) {
+        status.textContent = 'Response: ' + data.transcript;
+        addSystemMsg('📞 Call response: ' + data.transcript);
+      } else {
+        status.textContent = 'No transcription yet — Twilio may still be processing. Try again in 30 seconds.';
+      }
+    } catch(e) {
+      status.textContent = 'Could not fetch transcription.';
+    }
+  }
+
+  const SECRET = 'LaSeFEZRGRG343';
+  const SERVER = 'https://my-web-app2-production.up.railway.app';
+
   function showCallPanel() {
     document.getElementById('call-panel').style.display = 'block';
   }
@@ -275,16 +298,16 @@
     status.textContent = 'Initiating call...';
 
     try {
-      const res = await fetch('https://my-web-app2-production.up.railway.app/call', {
+      const res = await fetch(SERVER + '/call', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Secret-Token': 'LaSeFEZRGRG343' },
+        headers: { 'Content-Type': 'application/json', 'X-Secret-Token': SECRET },
         body: JSON.stringify({ to_number: number, question: question })
       });
       const data = await res.json();
       if (data.error) {
         status.textContent = 'Error: ' + data.error;
       } else {
-        status.textContent = 'Call initiated! Status: ' + data.status + '. The AI will call the number now.';
+        status.textContent = 'Call initiated! Status: ' + data.status + '. Wait for the call to end, then check the result.'; document.getElementById('check-btn').style.display = 'block';
         addSystemMsg('📞 AI call initiated to ' + number + ' — asking: "' + question + '"');
       }
     } catch(e) {
