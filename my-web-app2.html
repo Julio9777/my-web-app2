@@ -206,7 +206,7 @@
     const systemPrompt = document.getElementById('system-input').value + memStr;
 
     try {
-      const res = await fetch('http://localhost:8000/chat', {
+const res = await fetch('https://my-web-app2-production.up.railway.app/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Secret-Token': 'LaSeineEst75!' },
         body: JSON.stringify({
